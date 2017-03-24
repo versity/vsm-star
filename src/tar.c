@@ -16,6 +16,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 #include "system.h"
 
 #include <getopt.h>
@@ -235,6 +243,7 @@ struct option long_options[] =
   {"new-volume-script", required_argument, NULL, 'F'},
   {"newer", required_argument, NULL, 'N'},
   {"newer-mtime", required_argument, NULL, NEWER_MTIME_OPTION},
+  {"newer-than-existing", no_argument, NULL, 'n'},
   {"null", no_argument, NULL, NULL_OPTION},
   {"no-recursion", no_argument, NULL, NO_RECURSE_OPTION},
   {"numeric-owner", no_argument, &numeric_owner_option, 1},
@@ -392,6 +401,7 @@ Local file selection:\n\
 	     stdout);
 #if !MSDOS
       fputs (_("\
+  -n, --newer_than_existing    only store files newer than existing copy\n\
   -N, --newer=DATE             only store files newer than DATE\n\
       --newer-mtime            compare date and time when data changed only\n\
       --after-date=DATE        same as -N\n"),
@@ -448,7 +458,7 @@ Report bugs to <tar-bugs@gnu.ai.mit.edu>.\n"),
    Y  per-block gzip compression */
 
 #define OPTION_STRING \
-  "-01234567ABC:F:GK:L:MN:OPRST:UV:WX:Zb:cdf:g:hiklmoprstuvwxz"
+  "-01234567ABC:F:GK:L:MN:OPRST:UV:WX:Zb:cdf:g:hiklmnoprstuvwxz"
 
 static void
 set_subcommand_option (enum subcommand subcommand)
@@ -580,6 +590,9 @@ decode_options (int argc, char *const *argv)
 
       case 'b':
 	blocking_factor = intconv (optarg);
+	if (blocking_factor == 0) {
+		FATAL_ERROR ((0, 0, _("Invalid value for blocking_factor \"0\"")));
+	}
 	record_size = blocking_factor * BLOCKSIZE;
 	break;
 
@@ -698,6 +711,10 @@ decode_options (int argc, char *const *argv)
 	break;
 
 #if !MSDOS
+      case 'n':
+	newer_than_existing = 1;
+	break;
+
       case 'N':
 	after_date_option = 1;
 	/* Fall through.  */
@@ -891,7 +908,7 @@ decode_options (int argc, char *const *argv)
 	record_size = intconv (optarg);
 	if (record_size % BLOCKSIZE != 0)
 	  USAGE_ERROR ((0, 0, _("Record size must be a multiple of %d."),
-			BLOCKSIZE));
+			(int) BLOCKSIZE));
 	blocking_factor = record_size / BLOCKSIZE;
 	break;
 

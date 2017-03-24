@@ -22,7 +22,6 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
 
-
 SHELL = /bin/sh
 
 srcdir = @srcdir@
@@ -104,7 +103,7 @@ AUTOMAKE_OPTIONS = gnits dist-shar
 
 BABYL = rmail/* admin/*/RMAIL
 EXTRA_DIST = AC-PATCHES AM-PATCHES BI-PATCHES PORTS rebox.el
-SUBDIRS = doc lib intl src scripts po tests
+SUBDIRS = doc lib intl src scripts tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 CONFIG_HEADER_IN = config.h.in
 CONFIG_HEADER_FULL = config.h

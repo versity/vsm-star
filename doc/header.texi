@@ -196,6 +196,9 @@ struct oldgnu_header
 /* This file is a tape/volume header.  Ignore it on extraction.  */
 #define GNUTYPE_VOLHDR 'V'
 
+/* This file is a SAM-FS directory header.  Skip the directory on extraction. */
+#define SAMTYPE_DIRHDR 'Y'
+
 /*--------------------------------------.
 | tar Header Block, overall structure.  |
 `--------------------------------------*/

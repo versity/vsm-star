@@ -16,6 +16,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 #include "system.h"
 
 #include <signal.h>
@@ -64,7 +72,7 @@ union block *record_start;	/* start of record of archive */
 union block *record_end;	/* last+1 block of archive record */
 union block *current_block;	/* current block of archive */
 enum access_mode access_mode;	/* how do we handle the archive */
-static struct stat archive_stat; /* stat block for archive file */
+static struct L_STAT archive_stat; /* stat block for archive file */
 
 static long record_start_block; /* block ordinal at record_start */
 
@@ -116,9 +124,9 @@ static int global_volno = 1;	/* volume number to print in external
    volume.  (From Pierce Cantrell, 1991-08-13.)  */
 
 char *save_name;		/* name of the file we are currently writing */
-long save_totsize;		/* total size of file we are writing, only
+long long save_totsize;		/* total size of file we are writing, only
 				   valid if save_name is non NULL */
-long save_sizeleft;		/* where we are in the file we are writing,
+long long save_sizeleft;	/* where we are in the file we are writing,
 				   only valid if save_name is nonzero */
 
 int write_archive_to_stdout = 0;
@@ -126,8 +134,8 @@ int write_archive_to_stdout = 0;
 /* Used by flush_read and flush_write to store the real info about saved
    names.  */
 static char *real_s_name = NULL;
-static long real_s_totsize;
-static long real_s_sizeleft;
+static long long real_s_totsize;
+static long long real_s_sizeleft;
 
 /* Functions.  */
 
@@ -368,7 +376,8 @@ child_open_for_compress (void)
       /* We don't need a grandchild tar.  Open the archive and launch the
 	 compressor.  */
 
-      archive = creat (archive_name_array[0], 0666);
+      archive = open(archive_name_array[0],
+          O_WRONLY | O_CREAT | O_TRUNC | SAM_O_LARGEFILE, 0666);
       if (archive < 0)
 	{
 	  int saved_errno = errno;
@@ -530,7 +539,8 @@ child_open_for_uncompress (void)
       /* We don't need a grandchild tar.  Open the archive and lauch the
 	 uncompressor.  */
 
-      archive = open (archive_name_array[0], O_RDONLY | O_BINARY, 0666);
+      archive = open (archive_name_array[0],
+          O_RDONLY | O_BINARY | SAM_O_LARGEFILE, 0666);
       if (archive < 0)
 	FATAL_ERROR ((0, errno, _("Cannot open archive %s"),
 		      archive_name_array[0]));
@@ -574,7 +584,8 @@ child_open_for_uncompress (void)
   if (strcmp (archive_name_array[0], "-") == 0)
     archive = STDIN;
   else
-    archive = rmtopen (archive_name_array[0], O_RDONLY | O_BINARY,
+    archive = rmtopen (archive_name_array[0],
+               O_RDONLY | O_BINARY | SAM_O_LARGEFILE,
 		       0666, rsh_command_option);
   if (archive < 0)
     FATAL_ERROR ((0, errno, _("Cannot open archive %s"),
@@ -672,7 +683,7 @@ open_archive (enum access_mode access)
   stdlis = to_stdout_option ? stderr : stdout;
 
   if (record_size == 0)
-    FATAL_ERROR ((0, 0, _("Invalid value for record_size")));
+    FATAL_ERROR ((0, 0, _("Invalid value for record_size \"0\"")));
 
   if (archive_names == 0)
     FATAL_ERROR ((0, 0, _("No archive name given")));
@@ -763,13 +774,15 @@ open_archive (enum access_mode access)
 	}
     }
   else if (verify_option)
-    archive = rmtopen (archive_name_array[0], O_RDWR | O_CREAT | O_BINARY,
+    archive = rmtopen (archive_name_array[0],
+               O_RDWR | O_CREAT | O_BINARY | SAM_O_LARGEFILE,
 		       0666, rsh_command_option);
   else
     switch (access)
       {
       case ACCESS_READ:
-	archive = rmtopen (archive_name_array[0], O_RDONLY | O_BINARY, 0666,
+	archive = rmtopen (archive_name_array[0],
+               O_RDONLY | O_BINARY | SAM_O_LARGEFILE, 0666,
 			   rsh_command_option);
 	break;
 
@@ -783,7 +796,8 @@ open_archive (enum access_mode access)
 	break;
 
       case ACCESS_UPDATE:
-	archive = rmtopen (archive_name_array[0], O_RDWR | O_CREAT | O_BINARY,
+	archive = rmtopen (archive_name_array[0],
+               O_RDWR | O_CREAT | O_BINARY | SAM_O_LARGEFILE,
 			   0666, rsh_command_option);
 	break;
       }
@@ -800,13 +814,13 @@ open_archive (enum access_mode access)
 
 #if !MSDOS
 
-  fstat (archive, &archive_stat);
+  L_FSTAT (archive, &archive_stat);
 
   /* Detect if outputting to "/dev/null".  */
   {
-    struct stat dev_null_stat;
+    struct L_STAT dev_null_stat;
 
-    stat ("/dev/null", &dev_null_stat);
+    L_STAT ("/dev/null", &dev_null_stat);
     dev_null_output = (S_ISCHR (archive_stat.st_mode)
 		       && archive_stat.st_rdev == dev_null_stat.st_rdev);
   }
@@ -1049,7 +1063,7 @@ write_error (int status)
     FATAL_ERROR ((0, saved_errno, _("Cannot write to %s"),
 		  *archive_name_cursor));
   else
-    FATAL_ERROR ((0, 0, _("Only wrote %u of %u bytes to %s"),
+    FATAL_ERROR ((0, 0, _("Only wrote %d of %d bytes to %s"),
 		  status, record_size, *archive_name_cursor));
 }
 
@@ -1195,19 +1209,19 @@ error_loop:
 	      goto try_volume;
 	    }
 	  if (real_s_totsize
-	      != (from_oct (1 + 12, cursor->header.size)
-		  + from_oct (1 + 12, cursor->oldgnu_header.offset)))
+	      != (llfrom_oct (sizeof cursor->header.size, cursor->header.size)
+		  + llfrom_oct (sizeof cursor->oldgnu_header.offset, cursor->oldgnu_header.offset)))
 	    {
-	      WARN ((0, 0, _("%s is the wrong size (%ld != %ld + %ld)"),
+	      WARN ((0, 0, _("%s is the wrong size (%lld != %lld + %lld)"),
 			 cursor->header.name, save_totsize,
-			 from_oct (1 + 12, cursor->header.size),
-			 from_oct (1 + 12, cursor->oldgnu_header.offset)));
+			 llfrom_oct (sizeof cursor->header.size, cursor->header.size),
+			 llfrom_oct (sizeof cursor->oldgnu_header.offset, cursor->oldgnu_header.offset)));
 	      volno--;
 	      global_volno--;
 	      goto try_volume;
 	    }
 	  if (real_s_totsize - real_s_sizeleft
-	      != from_oct (1 + 12, cursor->oldgnu_header.offset))
+	      != llfrom_oct (sizeof cursor->oldgnu_header.offset, cursor->oldgnu_header.offset))
 	    {
 	      WARN ((0, 0, _("This volume is out of sequence")));
 	      volno--;
@@ -1237,7 +1251,7 @@ again:
 
       if (!read_full_records_option && verbose_option
 	  && record_start_block == 0 && status > 0)
-	WARN ((0, 0, _("Record size = %d blocks"), status / BLOCKSIZE));
+	WARN ((0, 0, _("Record size = %d blocks"), (int) (status / BLOCKSIZE)));
 
       record_end
 	= record_start + ((unsigned) (record_size - left)) / BLOCKSIZE;
@@ -1428,7 +1442,7 @@ close_archive (void)
 
 	    if (WTERMSIG (wait_status) != SIGPIPE)
 	      ERROR ((0, 0, _("Child died with signal %d%s"),
-		      WTERMSIG (wait_status),
+		      (int) WTERMSIG (wait_status),
 		      WCOREDUMP (wait_status) ? _(" (core dumped)") : ""));
 	  }
 	else
@@ -1439,7 +1453,7 @@ close_archive (void)
 	    if (WEXITSTATUS (wait_status) != (SIGPIPE + 128)
 		&& WEXITSTATUS (wait_status))
 	      ERROR ((0, 0, _("Child returned status %d"),
-		      WEXITSTATUS (wait_status)));
+		      (int) WEXITSTATUS (wait_status)));
 	  }
     }
 #endif /* !MSDOS */
@@ -1646,13 +1660,14 @@ tryagain:
     }
 
   if (verify_option)
-    archive = rmtopen (*archive_name_cursor, O_RDWR | O_CREAT, 0666,
+    archive = rmtopen (*archive_name_cursor,
+               O_RDWR | O_CREAT | SAM_O_LARGEFILE, 0666,
 		       rsh_command_option);
   else
     switch (access)
       {
       case ACCESS_READ:
-	archive = rmtopen (*archive_name_cursor, O_RDONLY, 0666,
+	archive = rmtopen (*archive_name_cursor, O_RDONLY | SAM_O_LARGEFILE, 0666,
 			   rsh_command_option);
 	break;
 
@@ -1663,7 +1678,8 @@ tryagain:
 	break;
 
       case ACCESS_UPDATE:
-	archive = rmtopen (*archive_name_cursor, O_RDWR | O_CREAT, 0666,
+	archive = rmtopen (*archive_name_cursor,
+               O_RDWR | O_CREAT | SAM_O_LARGEFILE, 0666,
 			   rsh_command_option);
 	break;
       }

@@ -15,13 +15,21 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 #include "system.h"
 
 #include "backupfile.h"
+
+#include "common.h"
 #include "rmt.h"
 
-/* The following inclusion for crosschecking prototypes, only.  */
-#include "common.h"
 
 /* Handling strings.  */
 
@@ -345,9 +353,9 @@ is_dot_or_dotdot (const char *p)
 int
 remove_any_file (const char *path, int recurse)
 {
-  struct stat stat_buffer;
+  struct L_STAT stat_buffer;
 
-  if (lstat (path, &stat_buffer) < 0)
+  if (L_LSTAT (path, &stat_buffer) < 0)
     return 0;
 
   if (S_ISDIR (stat_buffer.st_mode))
@@ -404,14 +412,14 @@ remove_any_file (const char *path, int recurse)
 int
 maybe_backup_file (const char *path, int archive)
 {
-  struct stat file_stat;
+  struct L_STAT file_stat;
 
   /* Check if we really need to backup the file.  */
 
   if (archive && _remdev (path))
     return 1;
 
-  if (stat (path, &file_stat))
+  if (L_STAT (path, &file_stat))
     {
       if (errno == ENOENT)
 	return 1;

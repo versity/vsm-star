@@ -2,7 +2,7 @@
 # Copyright (C) 1996 Free Software Foundation, Inc.
 # Primoz Peterlin <primoz.peterlin@biofiz.mf.uni-lj.si>, 1996.
 #
-#  $Header: tar-1.11.9.sl.po,v 1.6 96/05/30 09:45:24 peterlin Exp $
+#  $Header: /repository/sam-qfs/src/gnucmd/tar-1.12/po/sl.po,v 1.1.1.1 2000/05/23 19:05:45 clark Exp $
 #
 msgid ""
 msgstr ""

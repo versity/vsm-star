@@ -1,5 +1,5 @@
 %% TeX macros to handle Texinfo files.
-%% $Id: texinfo.tex,v 2.196 1997/01/04 19:20:54 karl Exp $
+%% $Id: texinfo.tex,v 1.2 2007/10/30 21:03:58 rs146458 Exp $
 
 %  Copyright (C) 1985, 86, 88, 90, 91, 92, 93,
 %                94, 95, 96, 97 Free Software Foundation, Inc.
@@ -25,6 +25,15 @@
 %what you give them.   Help stamp out software-hoarding!
 
 
+%For the avoidance of doubt, except that if any license choice other
+%than GPL or LGPL is available it will apply instead, Sun elects to
+%use only the General Public License version 2 (GPLv2) at this time
+%for any software where a choice of GPL license versions is made
+%available with the language indicating that GPLv2 or any later
+%version may be used, or where a choice of which version of the GPL
+%is applied is otherwise unspecified.
+
+
 % Send bug reports to bug-texinfo@prep.ai.mit.edu.
 % Please include a *precise* test case in each bug report.
 
@@ -36,7 +45,7 @@
 
 % This automatically updates the version number based on RCS.
 \def\deftexinfoversion$#1: #2 ${\def\texinfoversion{#2}}
-\deftexinfoversion$Revision: 2.196 $
+\deftexinfoversion$Revision: 1.2 $
 \message{Loading texinfo package [Version \texinfoversion]:}
 
 % If in a .fmt file, print the version number

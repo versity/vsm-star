@@ -16,6 +16,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 #include "system.h"
 
 #if HAVE_LINUX_FD_H
@@ -399,11 +407,11 @@ diff_sparse_files (int size_of_file)
 `---------------------------------------------------------------------*/
 
 static int
-get_stat_data (struct stat *stat_data)
+get_stat_data (struct L_STAT *stat_data)
 {
   int status = (dereference_option
-		? stat (current_file_name, stat_data)
-		: lstat (current_file_name, stat_data));
+		? L_STAT (current_file_name, stat_data)
+		: L_LSTAT (current_file_name, stat_data));
 
   if (status < 0)
     {
@@ -430,7 +438,7 @@ get_stat_data (struct stat *stat_data)
 void
 diff_archive (void)
 {
-  struct stat stat_data;
+  struct L_STAT stat_data;
   int name_length;
   int status;
 
@@ -506,7 +514,8 @@ diff_archive (void)
 	  goto quit;
 	}
 
-      diff_handle = open (current_file_name, O_NDELAY | O_RDONLY | O_BINARY);
+      diff_handle = open (current_file_name,
+          O_NDELAY | O_RDONLY | O_BINARY | SAM_O_LARGEFILE);
 
       if (diff_handle < 0 && !absolute_names_option)
 	{
@@ -514,7 +523,7 @@ diff_archive (void)
 
 	  *tmpbuf = '/';
 	  strcpy (tmpbuf + 1, current_file_name);
-	  diff_handle = open (tmpbuf, O_NDELAY | O_RDONLY);
+	  diff_handle = open (tmpbuf, O_NDELAY | O_RDONLY | SAM_O_LARGEFILE);
 	  free (tmpbuf);
 	}
       if (diff_handle < 0)
@@ -564,7 +573,7 @@ diff_archive (void)
 
 	dev = stat_data.st_dev;
 	ino = stat_data.st_ino;
-	status = stat (current_link_name, &stat_data);
+	status = L_STAT (current_link_name, &stat_data);
 	if (status < 0)
 	  {
 	    if (errno == ENOENT)
@@ -748,7 +757,8 @@ diff_archive (void)
 	    break;
 	  }
 
-	diff_handle = open (current_file_name, O_NDELAY | O_RDONLY | O_BINARY);
+	diff_handle = open (current_file_name,
+        O_NDELAY | O_RDONLY | O_BINARY | SAM_O_LARGEFILE);
 
 	if (diff_handle < 0)
 	  {
@@ -762,7 +772,7 @@ diff_archive (void)
 	if (status != offset)
 	  {
 	    WARN ((0, errno, _("Cannot seek to %ld in file %s"),
-		   offset, current_file_name));
+		   (long) offset, current_file_name));
 	    report_difference (NULL);
 	    break;
 	  }

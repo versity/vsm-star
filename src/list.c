@@ -16,6 +16,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 /* Define to non-zero for forcing old ctime() instead of isotime().  */
 #undef USE_OLD_CTIME
 
@@ -31,7 +39,8 @@
 #include "common.h"
 
 union block *current_header;	/* points to current archive header */
-struct stat current_stat;	/* stat struct corresponding */
+
+struct L_STAT current_stat;	/* stat struct corresponding */
 enum archive_format current_format; /* recognized format */
 
 /*-----------------------------------.
@@ -111,7 +120,7 @@ read_and (void (*do_something) ())
 	      /* Skip to the next header on the archive.  */
 
 	      if (save_typeflag != DIRTYPE)
-		skip_file ((long) current_stat.st_size);
+		skip_file ((long long) current_stat.st_size);
 	      continue;
 	    }
 
@@ -142,7 +151,7 @@ read_and (void (*do_something) ())
 	  switch (prev_status)
 	    {
 	    case HEADER_STILL_UNREAD:
-	      WARN ((0, 0, _("Hmm, this doesn't look like a tar archive")));
+	      WARN ((0, 0, _("Could not extract file(s); file might not be a tar archive")));
 	      /* Fall through.  */
 
 	    case HEADER_ZERO_BLOCK:
@@ -213,9 +222,9 @@ list_archive (void)
 				(data_block->buffer + written - 1));
 	  if (check != written)
 	    {
-	      ERROR ((0, errno, _("Only wrote %ld of %ld bytes to file %s"),
-		      check, written, current_file_name));
-	      skip_file ((long) (size - written));
+	      ERROR ((0, errno, _("Only wrote %lu of %lu bytes to file %s"),
+		      (unsigned long) check, (unsigned long) written, current_file_name));
+	      skip_file ((long long) (size - written));
 	      break;
 	    }
 	}
@@ -264,7 +273,7 @@ list_archive (void)
 
   /* Skip to the next header on the archive.  */
 
-  skip_file ((long) current_stat.st_size);
+  skip_file ((long long) current_stat.st_size);
 
   if (multi_volume_option)
     assign_string (&save_name, NULL);
@@ -306,7 +315,7 @@ read_header (void)
   char **longp;
   char *bp;
   union block *data_block;
-  int size, written;
+  long long size, written;
   static char *next_long_name, *next_long_link;
 
   while (1)
@@ -357,7 +366,7 @@ read_header (void)
       if (header->header.typeflag == LNKTYPE)
 	current_stat.st_size = 0;	/* links 0 size on tape */
       else
-	current_stat.st_size = from_oct (1 + 12, header->header.size);
+	current_stat.st_size = llfrom_str (sizeof header->header.size, header->header.size);
 
       header->header.name[NAME_FIELD_SIZE - 1] = '\0';
       if (header->header.typeflag == GNUTYPE_LONGNAME
@@ -424,7 +433,7 @@ read_header (void)
 `-------------------------------------------------------------------------*/
 
 void
-decode_header (union block *header, struct stat *stat_info,
+decode_header (union block *header, struct L_STAT *stat_info,
 	       enum archive_format *format_pointer, int do_user_group)
 {
   enum archive_format format;
@@ -513,6 +522,86 @@ from_oct (int digs, char *where)
       /* Scan til nonoctal.  */
 
       value = (value << 3) | (*where++ - '0');
+      --digs;
+    }
+
+  if (digs > 0 && *where && !ISSPACE (*where))
+    return -1;			/* ended on non-space/nul */
+
+  return value;
+}
+
+/*------------------------------------------------------------------------.
+| Quick and dirty octal conversion.  Result is -1 if the field is invalid |
+| (all blank, or nonoctal).						  |
+`------------------------------------------------------------------------*/
+
+long long
+llfrom_oct (int digs, char *where)
+{
+  long long value;
+
+  while (ISSPACE (*where))
+    {				/* skip spaces */
+      where++;
+      if (--digs <= 0)
+	return -1;		/* all blank field */
+    }
+  value = 0;
+  while (digs > 0 && ISODIGIT (*where))
+    {
+      /* Scan til nonoctal.  */
+
+      value = (value << 3) | (*where++ - '0');
+      --digs;
+    }
+
+  if (digs > 0 && *where && !ISSPACE (*where))
+    return -1;			/* ended on non-space/nul */
+
+  return value;
+}
+
+/*------------------------------------------------------------------------.
+| Quick and dirty conversion.  Field is hexadecimal if first digit is 'x' |
+| otherwise octal.  Result is -1 if the field is invalid                  |
+| (all blank, or nonoctal).						                          |
+`------------------------------------------------------------------------*/
+
+long long
+llfrom_str (int digs, char *where)
+{
+  long long value;
+  int digit;
+  int tmp;
+
+  if (*where != 'x') {
+	return(llfrom_oct(digs, where));
+  }
+  where++;
+  digs--;
+  while (ISSPACE (*where))
+    {				/* skip spaces */
+      where++;
+      if (--digs <= 0)
+	return -1;		/* all blank field */
+    }
+  value = 0;
+  while (digs > 0)
+    {
+	  tmp = *where;
+      /* Scan til nonhex.  */
+	  digit = tmp - (int)'0';
+	  if (digit > 9) {
+		if (tmp >= (int)'a' && tmp <= (int)'z') tmp -= (int)'a' - (int)'A';
+		digit = tmp + 10 - (int)'A';
+	  }
+	  if (digit >= 0 && digit < 16) {
+		value = value * 16LL + (long long)digit;
+	  } else {
+		break;		/* non-hex digit */
+	  }
+	  where++;
       --digs;
     }
 
@@ -729,11 +818,12 @@ print_header (void)
 	  break;
 #endif
 	case GNUTYPE_SPARSE:
-	  sprintf (size, "%ld",
-		   from_oct (1 + 12, current_header->oldgnu_header.realsize));
+	  sprintf (size, "%lld",
+		   llfrom_oct (sizeof current_header->oldgnu_header.realsize,
+				current_header->oldgnu_header.realsize));
 	  break;
 	default:
-	  sprintf (size, "%ld", (long) current_stat.st_size);
+	  sprintf (size, "%lld", (long long) current_stat.st_size);
 	}
 
       /* Figure out padding and print the whole line.  */
@@ -855,7 +945,7 @@ print_for_mkdir (char *pathname, int length, int mode)
 `--------------------------------------------------------*/
 
 void
-skip_file (long size)
+skip_file (long long size)
 {
   union block *x;
 

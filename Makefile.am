@@ -16,11 +16,19 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
 
+# For the avoidance of doubt, except that if any license choice other
+# than GPL or LGPL is available it will apply instead, Sun elects to
+# use only the General Public License version 2 (GPLv2) at this time
+# for any software where a choice of GPL license versions is made
+# available with the language indicating that GPLv2 or any later
+# version may be used, or where a choice of which version of the GPL
+# is applied is otherwise unspecified.
+
 AUTOMAKE_OPTIONS = gnits dist-shar
 
 BABYL = rmail/* admin/*/RMAIL
 EXTRA_DIST = AC-PATCHES AM-PATCHES BI-PATCHES PORTS rebox.el
-SUBDIRS = doc lib intl src scripts po tests
+SUBDIRS = doc lib intl src scripts tests
 
 all-local: $(CONFIG_HEADER)
 

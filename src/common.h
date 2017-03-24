@@ -15,6 +15,26 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
+#ifdef VSM
+#include "sam/linux_types.h"
+#else
+typedef long long longlong_t;
+
+#if defined(O_LARGEFILE)        /* Needed on open for large files */
+#define SAM_O_LARGEFILE O_LARGEFILE
+#else
+#define SAM_O_LARGEFILE 0
+#endif
+#endif
+
 /* Declare the GNU tar archive format.  */
 #include "tar.h"
 
@@ -92,6 +112,14 @@ GLOBAL int exit_status;
 
 /* Name of this program.  */
 GLOBAL const char *program_name;
+
+/* Get the correct open, creat, stat calls and stat structures */
+#define L_STAT  stat64
+#define L_LSTAT lstat64
+#define L_LSEEK lseek
+#define L_FSTAT fstat64
+#define TAROPEN open64
+#define TARCREAT creat64
 
 /* Main command option.  */
 
@@ -198,6 +226,9 @@ GLOBAL int multi_volume_option;
    get archived (also see after_date_option above).  If left to zero, it may
    be interpreted as very low threshold, just usable as such.  */
 GLOBAL time_t newer_mtime_option;
+
+/* Boolean value.  */
+GLOBAL int newer_than_existing;
 
 /* Boolean value.  */
 GLOBAL int no_recurse_option;
@@ -311,8 +342,8 @@ GLOBAL struct name *namelast;	/* points to last name in list */
 /* Pointer to the start of the scratch space.  */
 struct sp_array
   {
-    off_t offset;
-    int numbytes;
+    longlong_t offset;
+    longlong_t numbytes;
   };
 GLOBAL struct sp_array *sparsearray;
 
@@ -336,8 +367,8 @@ extern enum access_mode access_mode;
 
 extern FILE *stdlis;
 extern char *save_name;
-extern long save_sizeleft;
-extern long save_totsize;
+extern long long save_sizeleft;
+extern long long save_totsize;
 extern int write_archive_to_stdout;
 
 int available_space_after PARAMS ((union block *));
@@ -360,6 +391,8 @@ void set_next_block_after PARAMS ((union block *));
 void create_archive PARAMS ((void));
 void dump_file PARAMS ((char *, int, int));
 void finish_header PARAMS ((union block *));
+void llto_oct PARAMS ((long long, int, char *));
+void llto_str PARAMS ((long long, int, char *));
 void to_oct PARAMS ((long, int, char *));
 void write_eot PARAMS ((void));
 
@@ -401,19 +434,21 @@ enum read_header
 };
 
 extern union block *current_header;
-extern struct stat current_stat;
+extern struct L_STAT current_stat;
+void decode_header PARAMS ((union block *, struct L_STAT *,
+			    enum archive_format *, int));
 extern enum archive_format current_format;
 
-void decode_header PARAMS ((union block *, struct stat *,
-			    enum archive_format *, int));
 long from_oct PARAMS ((int, char *));
+long long llfrom_oct PARAMS ((int, char *));
+long long llfrom_str PARAMS ((int, char *));
 void list_archive PARAMS ((void));
 void print_for_mkdir PARAMS ((char *, int, int));
 void print_header PARAMS ((void));
 void read_and PARAMS ((void (*do_) ()));
 enum read_header read_header PARAMS ((void));
 void skip_extended_headers PARAMS ((void));
-void skip_file PARAMS ((long));
+void skip_file PARAMS ((long long));
 
 /* Module mangle.c.  */
 

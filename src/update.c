@@ -15,13 +15,23 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 /* Implement the 'r', 'u' and 'A' options for tar.  'A' means that the
    file names are tar files, and they should simply be appended to the end
    of the archive.  No attempt is made to record the reads from the args; if
    they're on raw tape or something like that, it'll probably lose...  */
 
 #include "system.h"
+
 #include "common.h"
+
 
 /* FIXME: This module should not directly handle the following variable,
    instead, this should be done in buffer.c only.  */
@@ -50,7 +60,8 @@ append_file (char *path)
   long bytes_left;
 
   if (stat (path, &stat_data) != 0
-      || (handle = open (path, O_RDONLY | O_BINARY), handle < 0))
+      || (handle =
+               open (path, O_RDONLY | O_BINARY | SAM_O_LARGEFILE), handle < 0))
     {
       ERROR ((0, errno, _("Cannot open file %s"), path));
       return;
@@ -76,14 +87,14 @@ append_file (char *path)
       status = read (handle, start->buffer, (size_t) buffer_size);
       if (status < 0)
 	FATAL_ERROR ((0, errno,
-		_("Read error at byte %ld reading %d bytes in file %s"),
-		stat_data.st_size - bytes_left, buffer_size, path));
+		_("Read error at byte %lld reading %ld bytes in file %s"),
+		(long long) (stat_data.st_size - bytes_left), (long) buffer_size, path));
       bytes_left -= status;
 
       set_next_block_after (start + (status - 1) / BLOCKSIZE);
 
       if (status != buffer_size)
-	FATAL_ERROR ((0, 0, _("%s: File shrunk by %d bytes, (yark!)"),
+	FATAL_ERROR ((0, 0, _("%s: File shrunk by %ld bytes, (yark!)"),
 		      path, bytes_left));
     }
 

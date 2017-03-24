@@ -15,6 +15,14 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 /* The man page rmt(8) for /etc/rmt documents the remote mag tape protocol
    which rdump and rrestore use.  Unfortunately, the man page is *WRONG*.
    The author of the routines I'm including originally wrote his code just
@@ -53,10 +61,9 @@
 # include <netdb.h>
 #endif
 
-#include "rmt.h"
+#include "common.h"
 
-/* FIXME: Just to shut up -Wall.  */
-int rexec ();
+#include "rmt.h"
 
 /* Exit status if exec errors.  */
 #define EXIT_ON_EXEC_ERROR 128

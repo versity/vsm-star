@@ -16,6 +16,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 #include "system.h"
 
 #include <time.h>
@@ -51,7 +59,7 @@ struct delayed_set_stat
   {
     struct delayed_set_stat *next;
     char *file_name;
-    struct stat stat_info;
+    struct L_STAT stat_info;
   };
 
 static struct delayed_set_stat *delayed_set_stat_head;
@@ -89,7 +97,7 @@ extr_init (void)
 `------------------------------------------------------------------*/
 
 static void
-set_mode (char *file_name, struct stat *stat_info)
+set_mode (char *file_name, struct L_STAT *stat_info)
 {
   /* We ought to force permission when -k is not selected, because if the
      file already existed, open or creat would save the permission bits from
@@ -105,7 +113,7 @@ set_mode (char *file_name, struct stat *stat_info)
       || (stat_info->st_mode & (S_ISUID | S_ISGID | S_ISVTX)))
     if (chmod (file_name, ~current_umask & (int) stat_info->st_mode) < 0)
       ERROR ((0, errno, _("%s: Cannot change mode to %0.4o"),
-	      file_name, ~current_umask & (int) stat_info->st_mode));
+	      file_name, (int) (~current_umask & (int) stat_info->st_mode)));
 }
 
 /*----------------------------------------------------------------------.
@@ -120,7 +128,7 @@ set_mode (char *file_name, struct stat *stat_info)
    punt for the rest.  Sigh!  */
 
 static void
-set_stat (char *file_name, struct stat *stat_info, int symlink_flag)
+set_stat (char *file_name, struct L_STAT *stat_info, int symlink_flag)
 {
   struct utimbuf utimbuf;
 
@@ -173,14 +181,14 @@ set_stat (char *file_name, struct stat *stat_info, int symlink_flag)
       if (symlink_flag)
 	{
 	  if (lchown (file_name, stat_info->st_uid, stat_info->st_gid) < 0)
-	    ERROR ((0, errno, _("%s: Cannot lchown to uid %d gid %d"),
-		    file_name, stat_info->st_uid, stat_info->st_gid));
+	    ERROR ((0, errno, _("%s: Cannot lchown to uid %ld gid %ld"),
+		    file_name, (long) stat_info->st_uid, (long) stat_info->st_gid));
 	}
       else
 	{
 	  if (chown (file_name, stat_info->st_uid, stat_info->st_gid) < 0)
-	    ERROR ((0, errno, _("%s: Cannot chown to uid %d gid %d"),
-		    file_name, stat_info->st_uid, stat_info->st_gid));
+	    ERROR ((0, errno, _("%s: Cannot chown to uid %ld gid %ld"),
+		    file_name, (long) stat_info->st_uid, (long) stat_info->st_gid));
 	}
 
 #else /* not HAVE_LCHOWN */
@@ -188,8 +196,8 @@ set_stat (char *file_name, struct stat *stat_info, int symlink_flag)
       if (!symlink_flag)
 
 	if (chown (file_name, stat_info->st_uid, stat_info->st_gid) < 0)
-	  ERROR ((0, errno, _("%s: Cannot chown to uid %d gid %d"),
-		  file_name, stat_info->st_uid, stat_info->st_gid));
+	  ERROR ((0, errno, _("%s: Cannot chown to uid %ld gid %ld"),
+		  file_name, (long) stat_info->st_uid, (long) stat_info->st_gid));
 
 #endif/* not HAVE_LCHOWN */
 
@@ -242,8 +250,8 @@ make_directories (char *file_name)
 	  if (we_are_root)
 	    if (chown (file_name, current_stat.st_uid, current_stat.st_gid) < 0)
 	      ERROR ((0, errno,
-		      _("%s: Cannot change owner to uid %d, gid %d"),
-		      file_name, current_stat.st_uid, current_stat.st_gid));
+		      _("%s: Cannot change owner to uid %ld, gid %ld"),
+		      file_name, (long) current_stat.st_uid, (long) current_stat.st_gid));
 
 	  print_for_mkdir (file_name, cursor - file_name,
 			   ~newdir_umask & 0777);
@@ -288,7 +296,7 @@ maybe_recoverable (char *file_name)
       /* Attempt deleting an existing file.  However, with -k, just stay
 	 quiet.  */
 
-      if (keep_old_files_option)
+      if (keep_old_files_option || newer_than_existing)
 	return 0;
 
       return remove_any_file (file_name, 0);
@@ -310,7 +318,7 @@ maybe_recoverable (char *file_name)
 `---*/
 
 static void
-extract_sparse_file (int fd, long *sizeleft, long totalsize, char *name)
+extract_sparse_file (int fd, long long *sizeleft, long long totalsize, char *name)
 {
   union block *data_block;
   int sparse_ind = 0;
@@ -329,7 +337,7 @@ extract_sparse_file (int fd, long *sizeleft, long totalsize, char *name)
 	  ERROR ((0, 0, _("Unexpected EOF on archive file")));
 	  return;
 	}
-      lseek (fd, sparsearray[sparse_ind].offset, 0);
+      L_LSEEK (fd, sparsearray[sparse_ind].offset, 0);
       written = sparsearray[sparse_ind++].numbytes;
       while (written > BLOCKSIZE)
 	{
@@ -348,9 +356,9 @@ extract_sparse_file (int fd, long *sizeleft, long totalsize, char *name)
 	ERROR ((0, errno, _("%s: Could not write to file"), name));
       else if (count != written)
 	{
-	  ERROR ((0, 0, _("%s: Could only write %d of %d bytes"),
+	  ERROR ((0, 0, _("%s: Could only write %d of %lld bytes"),
 		     name, count, totalsize));
-	  skip_file ((long) (*sizeleft));
+	  skip_file ( (long long) (*sizeleft));
 	}
 
       written -= count;
@@ -370,11 +378,12 @@ extract_archive (void)
 {
   union block *data_block;
   int fd;
+  int keep_thisone;		/* flag for -n option */
   int status;
   int name_length;
   int written;
   int openflag;
-  long size;
+  long long size;
   int skipcrud;
   int counter;
 #if 0
@@ -392,7 +401,7 @@ extract_archive (void)
     {
       if (current_header->oldgnu_header.isextended)
 	skip_extended_headers ();
-      skip_file ((long) current_stat.st_size);
+      skip_file ((long long) current_stat.st_size);
       return;
     }
 
@@ -426,7 +435,7 @@ Removing leading `/' from absolute path names in the archive")));
 		CURRENT_FILE_NAME));
 	if (current_header->oldgnu_header.isextended)
 	  skip_extended_headers ();
-	skip_file ((long) current_stat.st_size);
+	skip_file ((long long) current_stat.st_size);
 	return;
       }
 
@@ -456,10 +465,10 @@ Removing leading `/' from absolute path names in the archive")));
       for (counter = 0; counter < SPARSES_IN_OLDGNU_HEADER; counter++)
 	{
 	  sparsearray[counter].offset =
-	    from_oct (1 + 12,
+	    llfrom_oct (sizeof current_header->oldgnu_header.sp[counter].offset,
 		      current_header->oldgnu_header.sp[counter].offset);
 	  sparsearray[counter].numbytes =
-	    from_oct (1 + 12,
+	    llfrom_oct (sizeof current_header->oldgnu_header.sp[counter].numbytes,
 		      current_header->oldgnu_header.sp[counter].numbytes);
 	  if (!sparsearray[counter].numbytes)
 	    break;
@@ -523,10 +532,30 @@ Removing leading `/' from absolute path names in the archive")));
 
       /* FIXME: deal with protection issues.  */
 
+	  if (newer_than_existing) {
+		struct L_STAT st1;
+#if hgmdbg
+		char t1[30], t2[30];
+#endif
+
+	    if ((L_STAT (CURRENT_FILE_NAME, &st1) == 0)
+			&& (st1.st_mtime >= current_stat.st_mtime)) { /* archive is older */
+				keep_thisone = 1;
+		} else {
+				keep_thisone = 0;
+		}
+#if hgmdbg
+		strcpy(t1, ctime(&st1.st_mtime));
+		strcpy(t2, ctime(&current_stat.st_mtime));
+WARN ((0, 0, _("file %s,\n filetime %s archive %s keep %d"),
+  CURRENT_FILE_NAME, t1, t2, keep_thisone));
+#endif
+	  }
+		
     again_file:
-      openflag = (keep_old_files_option ?
-		  O_BINARY | O_NDELAY | O_WRONLY | O_CREAT | O_EXCL :
-		  O_BINARY | O_NDELAY | O_WRONLY | O_CREAT | O_TRUNC)
+      openflag = ((keep_old_files_option || keep_thisone) ?
+		  O_BINARY | O_NDELAY | O_WRONLY | O_CREAT | O_EXCL | SAM_O_LARGEFILE:
+		  O_BINARY | O_NDELAY | O_WRONLY | O_CREAT | O_TRUNC | SAM_O_LARGEFILE)
 	| ((current_header->header.typeflag == GNUTYPE_SPARSE) ? 0 : O_APPEND);
 
       /* JK - The last | is a kludge to solve the problem the O_APPEND
@@ -577,11 +606,16 @@ Removing leading `/' from absolute path names in the archive")));
 	  if (maybe_recoverable (CURRENT_FILE_NAME))
 	    goto again_file;
 
-	  ERROR ((0, errno, _("%s: Could not create file"),
-		  CURRENT_FILE_NAME));
+		if (keep_thisone) {
+		  WARN ((0, errno, _("%s: Archived file older than existing"),
+			  CURRENT_FILE_NAME));
+		} else {
+		  ERROR ((0, errno, _("%s: Could not create file"),
+			  CURRENT_FILE_NAME));
+		}
 	  if (current_header->oldgnu_header.isextended)
 	    skip_extended_headers ();
-	  skip_file ((long) current_stat.st_size);
+	  skip_file ((long long) current_stat.st_size);
 	  if (backup_option)
 	    undo_last_backup ();
 	  break;
@@ -638,9 +672,9 @@ Removing leading `/' from absolute path names in the archive")));
 #if 0
 	    if (current_header->header.typeflag == GNUTYPE_SPARSE)
 	      {
-		off_t pos;
+		offset_t pos;
 
-		pos = lseek (fd, (off_t) sparsearray[sparse_ind].offset, 0);
+		pos = L_LSEEK (fd, (offset_t) sparsearray[sparse_ind].offset, 0);
 		fprintf (msg_file, _("%d at %d\n"), (int) pos, sparse_ind);
 		written = sparsearray[sparse_ind++].numbytes;
 	      }
@@ -667,7 +701,7 @@ Removing leading `/' from absolute path names in the archive")));
 	    else
 	      ERROR ((0, 0, _("%s: Could only write %d of %d bytes"),
 		      CURRENT_FILE_NAME, status, written));
-	    skip_file ((long) (size - written));
+	    skip_file ((long long) (size - written));
 	    break;		/* still do the close, mod time, chmod, etc */
 	  }
 
@@ -692,9 +726,11 @@ Removing leading `/' from absolute path names in the archive")));
 
 	      if (!exhdr->sparse_header.sp[counter].numbytes)
 		break;
-	      offset = from_oct (1 + 12, exhdr->sparse_header.sp[counter].offset);
-	      written = from_oct (1 + 12, exhdr->sparse_header.sp[counter].numbytes);
-	      lseek (fd, offset, 0);
+	      offset = llfrom_str (sizeof exhdr->sparse_header.sp[counter].offset,
+						exhdr->sparse_header.sp[counter].offset);
+	      written = llfrom_str (sizeof exhdr->sparse_header.sp[counter].numbytes,
+						exhdr->sparse_header.sp[counter].numbytes);
+	      L_LSEEK (fd, offset, 0);
 	      status = write (fd, data_block->buffer, written);
 	      if (status == written)
 		continue;
@@ -853,6 +889,21 @@ Attempting extraction of symbolic links as hard links")));
 #endif
 
     case DIRTYPE:
+      /* 
+       * SAM-FS size is > 0, gnutar directory size is 0.
+       */
+      if (current_stat.st_size > 0 )
+    {
+      /*
+       * SAM-FS 350-40 and above archived directories this way.
+       * This caused a problem with disaster recovery. Skip the
+       * directory info.
+	   * Directories were changed to SAMTYPE_DIRHDR in 4.0.
+       */
+	   skip_file ((long long) (current_stat.st_size));
+       break;
+    }
+    /*FALLTHROUGH*/
     case GNUTYPE_DUMPDIR:
       name_length = strlen (CURRENT_FILE_NAME) - 1;
 
@@ -869,7 +920,7 @@ Attempting extraction of symbolic links as hard links")));
 	  gnu_restore (skipcrud);
 	}
       else if (current_header->header.typeflag == GNUTYPE_DUMPDIR)
-	skip_file ((long) (current_stat.st_size));
+	skip_file ((long long) (current_stat.st_size));
 
       if (to_stdout_option)
 	break;
@@ -973,7 +1024,7 @@ Attempting extraction of symbolic links as hard links")));
       ERROR ((0, 0, _("\
 Cannot extract `%s' -- file is continued from another volume"),
 	      current_file_name));
-      skip_file ((long) current_stat.st_size);
+      skip_file ((long long) current_stat.st_size);
       if (backup_option)
 	undo_last_backup ();
       break;
@@ -981,9 +1032,13 @@ Cannot extract `%s' -- file is continued from another volume"),
     case GNUTYPE_LONGNAME:
     case GNUTYPE_LONGLINK:
       ERROR ((0, 0, _("Visible long name error")));
-      skip_file ((long) current_stat.st_size);
+      skip_file ((long long) current_stat.st_size);
       if (backup_option)
 	undo_last_backup ();
+      break;
+
+    case SAMTYPE_DIRHDR:
+      skip_file ((long long) current_stat.st_size);
       break;
 
     default:

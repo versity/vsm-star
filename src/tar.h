@@ -15,6 +15,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 /* GNU tar Archive Format description.  */
 
 /* If OLDGNU_COMPATIBILITY is not zero, tar produces archives which, by
@@ -212,6 +220,9 @@ struct oldgnu_header
 
 /* This file is a tape/volume header.  Ignore it on extraction.  */
 #define GNUTYPE_VOLHDR 'V'
+
+/* This file is a SAM-FS directory header.  Skip the directory on extraction. */
+#define SAMTYPE_DIRHDR 'Y'
 
 /*--------------------------------------.
 | tar Header Block, overall structure.  |

@@ -15,6 +15,14 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 extern char *rmt_path__;
 
 int rmt_open__ PARAMS ((const char *, int, int, const char *));
@@ -57,7 +65,7 @@ int rmt_ioctl__ PARAMS ((int, int, char *));
 #define rmtcreat(Path, Mode, Command) \
    (_remdev (Path) \
     ? rmt_open__ (Path, 1 | O_CREAT, __REM_BIAS, Command) \
-    : creat (Path, Mode))
+    : open (Path, O_WRONLY | O_CREAT | O_TRUNC | SAM_O_LARGEFILE, Mode))
 
 #define rmtlstat(Path, Buffer) \
   (_remdev (Path) ? (errno = EOPNOTSUPP), -1 : lstat (Path, Buffer))

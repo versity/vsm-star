@@ -15,6 +15,14 @@
    with this program; if not, write to the Free Software Foundation, Inc.,
    59 Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* For the avoidance of doubt, except that if any license choice other
+   than GPL or LGPL is available it will apply instead, Sun elects to
+   use only the General Public License version 2 (GPLv2) at this time
+   for any software where a choice of GPL license versions is made
+   available with the language indicating that GPLv2 or any later
+   version may be used, or where a choice of which version of the GPL
+   is applied is otherwise unspecified. */
+
 #include "system.h"
 
 #include <time.h>
@@ -202,7 +210,7 @@ get_directory_contents (char *path, int device)
 
     while (entry = readdir (dirp), entry)
       {
-	struct stat stat_data;
+	struct L_STAT stat_data;
 
 	/* Skip `.' and `..'.  */
 
@@ -223,8 +231,8 @@ get_directory_contents (char *path, int device)
 	    ? statx (name_buffer, &stat_data, STATSIZE, STX_HIDDEN)
 	    : statx (name_buffer, &stat_data, STATSIZE, STX_HIDDEN | STX_LINK)
 #else
-	    ? stat (name_buffer, &stat_data)
-	    : lstat (name_buffer, &stat_data)
+	    ? L_STAT (name_buffer, &stat_data)
+	    : L_LSTAT (name_buffer, &stat_data)
 #endif
 	    )
 	  {
@@ -563,7 +571,7 @@ collect_and_sort_names (void)
   struct name *name;
   struct name *next_name;
   int num_names;
-  struct stat statbuf;
+  struct L_STAT statbuf;
 
   name_gather ();
 
@@ -591,7 +599,7 @@ collect_and_sort_names (void)
 #ifdef AIX
 	  statx (name->name, &statbuf, STATSIZE, STX_HIDDEN | STX_LINK)
 #else
-	  lstat (name->name, &statbuf) < 0
+	  L_LSTAT (name->name, &statbuf) < 0
 #endif
 	  )
 	{
